@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BK Pro Trainer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bk-red: #da291c;
+            --bk-blue: #0033a0;
+            --bk-yellow: #f2a900;
+            --bk-brown: #512214;
+            --bk-dark: #1a1a1a;
+            --bg: #e8e3db;
+            --nav-h: 150px;
+            --header-h: 52px;
+            --footer-h: 60px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Barlow Condensed', sans-serif;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── HEADER ── */
+        header {
+            height: var(--header-h);
+            background: var(--bk-red);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 18px;
+            flex-shrink: 0;
+            z-index: 20;
+        }
+        header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; }
+        .stats { display: flex; gap: 20px; font-size: 18px; font-weight: 700; }
+        .stats span { background: rgba(0,0,0,0.2); padding: 5px 12px; border-radius: 4px; }
+        .btn-cfg { background: var(--bk-yellow); color: var(--bk-brown); border: none; padding: 7px 14px; font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 1px; border-radius: 3px; cursor: pointer; }
+
+        /* ── CONFIG PANEL ── */
+        #config-panel {
+            display: none; position: absolute; top: var(--header-h); left: 0; right: 0; z-index: 100;
+            background: #222; color: white; padding: 16px 20px;
+            border-bottom: 4px solid var(--bk-blue);
+        }
+        #config-panel textarea { width: 100%; height: 100px; font-family: monospace; font-size: 11px; background: #111; color: #0f0; border: 1px solid #555; padding: 8px; }
+        #config-panel label { font-size: 15px; margin-right: 8px; }
+        #config-panel input[type=number] { width: 60px; padding: 4px 8px; font-size: 15px; border: 1px solid #555; background: #333; color: white; }
+
+        /* ── TOP NAV ── */
+        #stations-nav {
+            height: var(--nav-h);
+            background: white;
+            border-bottom: 2px solid #ccc;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            align-items: flex-start;
+            padding: 8px 12px;
+            gap: 0;
+            flex-shrink: 0;
+        }
+
+        .station {
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #e0e0e0;
+            padding: 0 10px 0 8px;
+            flex-shrink: 0;
+        }
+        .station:last-child { border-right: none; }
+        .station-label {
+            font-size: 10px; font-weight: 700; color: #999;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            margin-bottom: 5px; padding-left: 2px;
+            border-bottom: 2px solid currentColor;
+            padding-bottom: 2px;
+        }
+        .station[data-zone="bun"] .station-label   { color: var(--bk-brown); }
+        .station[data-zone="sauce"] .station-label  { color: #c47d00; }
+        .station[data-zone="garniture"] .station-label { color: #2e7d32; }
+
+        .station-items { display: flex; flex-wrap: wrap; gap: 5px; max-height: 110px; overflow: hidden; }
+
+        .ing {
+            padding: 5px 6px; cursor: grab; background: #fff;
+            border: 1.5px solid #ddd; border-radius: 6px;
+            font-weight: 700; font-size: 11px; text-align: center;
+            width: 80px; flex-shrink: 0; transition: border-color 0.15s, box-shadow 0.15s;
+            user-select: none;
+        }
+        .ing:hover { border-color: var(--bk-red); box-shadow: 0 2px 8px rgba(218,41,28,0.18); }
+        .ing img { width: 52px; height: 36px; object-fit: contain; pointer-events: none; display: block; margin: 0 auto 3px; }
+
+        /* ── MAIN LAYOUT ── */
+        main {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            gap: 8px;
+            padding: 8px;
+            flex-grow: 1;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* ── KDS ── */
+        #kds {
+            background: #111;
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-y: auto;
+            border: 2px solid #2a2a2a;
+            font-family: 'Barlow Condensed', sans-serif;
+        }
+        #kds h3 { color: #fff; text-align: center; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 6px; }
+        .kds-order { padding: 9px; border: 1px solid #2a2a2a; margin-bottom: 6px; border-radius: 4px; font-size: 15px; font-weight: 700; transition: all 0.2s; }
+        .kds-order.active { border-color: #00ff00; background: #0a1f0a; color: #00ff00; }
+        .kds-order.done { opacity: 0.25; color: #555; }
+        .gamme-tag { font-size: 12px; font-weight: 400; color: #888; }
+
+        /* ── ASSEMBLY BOARDS ── */
+        #assembly-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            background: #f0ebe2;
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #d5cfc5;
+            overflow: hidden;
+        }
+        .board {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            overflow: hidden;
+        }
+        .board h4 {
+            text-align: center; padding: 9px; margin: 0;
+            background: var(--bk-brown); color: white;
+            font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px;
+        }
+        .board.crown-board h4 { background: var(--bk-blue); }
+        .drop-zone {
+            flex-grow: 1; display: flex; flex-direction: column-reverse;
+            align-items: center; padding: 10px; gap: 6px;
+            overflow-y: auto; min-height: 0;
+        }
+        .drop-zone.drag-over { background: #fff3e0; }
+        .on-board {
+            width: 155px; padding: 5px 8px; display: flex;
+            align-items: center; gap: 7px;
+            background: white; border: 1.5px solid #e0e0e0; border-radius: 6px;
+            position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            animation: slideIn 0.15s ease;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .on-board img { height: 36px; width: 52px; object-fit: contain; flex-shrink: 0; }
+        .on-board span { font-size: 12px; font-weight: 700; color: #444; text-transform: uppercase; flex-grow: 1; line-height: 1.2; }
+        .remove-btn { cursor: pointer; color: #bbb; font-size: 18px; line-height: 1; flex-shrink: 0; }
+        .remove-btn:hover { color: var(--bk-red); }
+
+        /* ── RIGHT SIDEBAR ── */
+        #right-side-station {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+        .right-zone { }
+        .right-zone-label {
+            font-size: 10px; font-weight: 700; color: #999;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            border-bottom: 2px solid #eee; padding-bottom: 3px;
+            margin-bottom: 5px;
+        }
+        .right-zone-label.viande   { color: #a33; border-color: #a33; }
+        .right-zone-label.poulet   { color: #c07000; border-color: #c07000; }
+        .right-zone-label.fish     { color: #1565c0; border-color: #1565c0; }
+        .right-zone-label.veggie   { color: #2e7d32; border-color: #2e7d32; }
+        .right-zone-label.fromage  { color: #f9a825; border-color: #f9a825; }
+        .right-zone-label.charcuterie { color: #7b1fa2; border-color: #7b1fa2; }
+        .right-zone-label.legumes  { color: #388e3c; border-color: #388e3c; }
+        .right-zone-items { display: flex; flex-wrap: wrap; gap: 5px; }
+        #right-side-station .ing { width: calc(50% - 3px); }
+
+        /* ── RESULTS ── */
+        #results-screen {
+            display: none; position: fixed; inset: 0;
+            background: #f4f1ec; z-index: 200; overflow-y: auto; padding: 30px;
+        }
+        .result-card {
+            background: white; border-radius: 10px; padding: 20px;
+            margin-bottom: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            border-left: 8px solid transparent;
+        }
+        .result-card.is-correct { border-left-color: #4CAF50; }
+        .result-card.is-wrong { border-left-color: var(--bk-red); }
+        .result-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+
+        /* Burger tower */
+        .burger-tower {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            background: #fafafa;
+            padding: 20px 15px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            gap: 4px;
+        }
+        .tower-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 260px;
+        }
+        .tower-item img {
+            width: 90px;
+            height: 52px;
+            object-fit: contain;
+            flex-shrink: 0;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.12));
+        }
+        .tower-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #555;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .tower-divider {
+            width: 80%;
+            height: 1px;
+            background: #eee;
+            margin: 0 auto;
+        }
+
+        /* ── HEEL / CROWN DEMARCATION LINE ── */
+        .tower-demarcation {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 280px;
+            margin: 6px auto;
+        }
+        .tower-demarcation-line {
+            flex: 1;
+            height: 3px;
+            background: var(--bk-red);
+            border-radius: 2px;
+        }
+        .tower-demarcation-label {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            color: var(--bk-red);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            height: var(--footer-h);
+            background: white; border-top: 2px solid #ccc;
+            display: flex; justify-content: center; align-items: center; gap: 12px;
+            flex-shrink: 0;
+        }
+        .btn {
+            padding: 11px 32px; border: none; border-radius: 4px;
+            font-family: 'Bebas Neue', sans-serif; font-size: 19px;
+            letter-spacing: 1.5px; cursor: pointer; transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-blue { background: var(--bk-blue); color: white; }
+        .btn-brown { background: var(--bk-brown); color: white; }
+        .btn-green { background: #2e7d32; color: white; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <h1>🍔 BK PRO TRAINER</h1>
+        <button class="btn-cfg" onclick="toggleConfig()">⚙ SETUP</button>
+    </div>
+    <div class="stats">
+        <span>ORDER <span id="round-num">1</span>/<span id="total-rounds-display">5</span></span>
+        <span>✓ <span id="score-val">0</span></span>
+    </div>
+</header>
+
+<div id="config-panel">
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <label>Orders:</label>
+        <input type="number" id="order-count-input" value="2" min="1" max="50">
+        <button class="btn btn-blue" onclick="saveData()" style="padding:6px 16px;font-size:15px;">Apply & Restart</button>
+        <span style="color:#888;font-size:13px;">Or paste custom JSON below:</span>
+    </div>
+    <textarea id="json-input"></textarea>
+</div>
+
+<nav id="stations-nav"></nav>
+
+<main>
+    <section id="kds"></section>
+    <section id="assembly-area">
+        <div class="board">
+            <h4>HEEL BOARD</h4>
+            <div class="drop-zone" id="heel-zone"
+                ondrop="drop(event)" ondragover="allowDrop(event)"
+                ondragenter="this.classList.add('drag-over')"
+                ondragleave="this.classList.remove('drag-over')"></div>
+        </div>
+        <div class="board crown-board">
+            <h4>CROWN BOARD</h4>
+            <div class="drop-zone" id="crown-zone"
+                ondrop="drop(event)" ondragover="allowDrop(event)"
+                ondragenter="this.classList.add('drag-over')"
+                ondragleave="this.classList.remove('drag-over')"></div>
+        </div>
+    </section>
+    <section id="right-side-station"></section>
+</main>
+
+<div id="results-screen">
+    <div style="max-width:1000px;margin:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h1 style="font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--bk-brown);letter-spacing:2px;">SESSION RESULTS</h1>
+            <button class="btn btn-blue" onclick="location.reload()">↺ RESTART</button>
+        </div>
+        <h2 id="final-score-text" style="background:white;padding:18px;border-radius:8px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.06);font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;"></h2>
+        <div id="results-list" style="margin-top:20px;"></div>
+    </div>
+</div>
+
+<footer>
+    <button class="btn btn-brown" onclick="clearBoards()">🗑 TRASH</button>
+    <button class="btn btn-blue" onclick="serveOrder()">🚀 SERVE ORDER</button>
+</footer>
+
+<script>
+let bkData = {
+  ingredients: [
+    // ── BUNS
+    { id: "couronne-bun-5",     name: "Couronne 5\"",    cat: "bun", zone: "bun", side: "top", img: "images/top_bun.png" },
+    { id: "talon-bun-5",        name: "Talon 5\"",       cat: "bun", zone: "bun", side: "top", img: "images/bottom_bun.png" },
+    { id: "couronne-bun-45",    name: "Couronne 4.5\"",  cat: "bun", zone: "bun", side: "top", img: "images/top_bun.png" },
+    { id: "talon-bun-45",       name: "Talon 4.5\"",     cat: "bun", zone: "bun", side: "top", img: "images/bottom_bun.png" },
+    { id: "couronne-bun-4",     name: "Couronne 4\"",    cat: "bun", zone: "bun", side: "top", img: "images/top_bun.png" },
+    { id: "talon-bun-4",        name: "Talon 4\"",       cat: "bun", zone: "bun", side: "top", img: "images/bottom_bun.png" },
+    { id: "couronne-bun-shiny", name: "Cour. Shiny",     cat: "bun", zone: "bun", side: "top", img: "images/top_bun.png" },
+    { id: "talon-bun-shiny",    name: "Talon Shiny",     cat: "bun", zone: "bun", side: "top", img: "images/bottom_bun.png" },
+    { id: "pain-toast",         name: "Pain Toast",      cat: "bun", zone: "bun", side: "top", img: "images/bun_toast.png" },
+    { id: "bun-toast",          name: "Bun Toast",       cat: "bun", zone: "bun", side: "top", img: "images/bun_toast.png" },
+    { id: "tortilla",           name: "Tortilla",        cat: "bun", zone: "bun", side: "top", img: "images/tortilla.png" },
+
+    // ── SAUCES
+    { id: "mayo",                  name: "Mayo 21g",        cat: "sauce", zone: "sauce", side: "top", img: "images/mayo.png" },
+    { id: "mayo-14g",              name: "Mayo 14g",        cat: "sauce", zone: "sauce", side: "top", img: "images/mayo.png" },
+    { id: "ketchup",               name: "Ketchup",         cat: "sauce", zone: "sauce", side: "top", img: "images/ketchup.png" },
+    { id: "moutarde",              name: "Moutarde",        cat: "sauce", zone: "sauce", side: "top", img: "images/sauce_moutard.png" },
+    { id: "sauce-bbq",             name: "Sauce BBQ",       cat: "sauce", zone: "sauce", side: "top", img: "images/sauce_bbq.png" },
+    { id: "sauce-cajun",           name: "Sauce Cajun",     cat: "sauce", zone: "sauce", side: "top", img: "images/sauce_cajun.png" },
+    { id: "sauce-king",            name: "Sauce King",      cat: "sauce", zone: "sauce", side: "top", img: "images/sauce_king.png" },
+    { id: "sauce-mout-ancienne",   name: "Mout. Ancienne",  cat: "sauce", zone: "sauce", side: "top", img: "images/sauce_mout_a_lancienne.png" },
+    { id: "sauce-spicy-andalouse", name: "Spicy Andalouse", cat: "sauce", zone: "sauce", side: "top", img: "images/sauce_spicy_andalouse.png" },
+    { id: "sauce-cheddar",         name: "Sce Cheddar",     cat: "sauce", zone: "sauce", side: "top", img: "images/sauce_cheddar.png" },
+
+    // ── GARNITURE
+    { id: "laitue",           name: "Laitue",           cat: "garniture", zone: "garniture", side: "top", img: "images/salad.png" },
+    { id: "tomate-1",         name: "Tomate ×1",        cat: "garniture", zone: "garniture", side: "top", img: "images/tomate_x1.png" },
+    { id: "tomate-2",         name: "Tomate ×2",        cat: "garniture", zone: "garniture", side: "top", img: "images/tomates_x2.png" },
+    { id: "cornichons-4",     name: "Cornichons ×4",    cat: "garniture", zone: "garniture", side: "top", img: "images/cornichons_x4.png" },
+    { id: "cornichons-2",     name: "Cornichons ×2",    cat: "garniture", zone: "garniture", side: "top", img: "images/cornichon_x2.png" },
+    { id: "onion-2",          name: "Oignon ×2",        cat: "garniture", zone: "garniture", side: "top", img: "images/onion_x2.png" },
+    { id: "onion-3",          name: "Oignon ×3",        cat: "garniture", zone: "garniture", side: "top", img: "images/onion_x3.png" },
+    { id: "onion-frits",      name: "Oignons Frits",    cat: "garniture", zone: "garniture", side: "top", img: "images/onion_frits.png" },
+    { id: "onion-caramelises",name: "Oignons Caram.",   cat: "garniture", zone: "garniture", side: "top", img: "images/onion_caramelises.png" },
+    { id: "roquette",         name: "Roquette 9g",      cat: "garniture", zone: "garniture", side: "top", img: "images/roquette.png" },
+    { id: "crousty-chevre",   name: "Crousty Chèvre ×4",cat: "garniture", zone: "garniture", side: "top", img: "images/crousty_chevre_x4.png" },
+
+    // ── VIANDE
+    { id: "patty-whopper", name: "Patty Whopper", cat: "viande",     zone: "viande",     side: "right", img: "images/patty_whopper.png" },
+    { id: "patty-burger",  name: "Patty Burger",  cat: "viande",     zone: "viande",     side: "right", img: "images/patty_burger.png" },
+
+    // ── POULET
+    { id: "patty-crispy-chicken",      name: "Crispy Chicken",        cat: "poulet", zone: "poulet", side: "right", img: "images/patty_crispy_chicken.png" },
+    { id: "patty-crispy-chicken-coupe",name: "Crispy Chicken coupe",  cat: "poulet", zone: "poulet", side: "right", img: "images/patty_crispy_chicken_coupe_en2.png" },
+    { id: "patty-chicken-premium",     name: "Chicken Premium",       cat: "poulet", zone: "poulet", side: "right", img: "images/patty_chicken_premium.png" },
+
+    // ── FISH
+    { id: "patty-fish", name: "Patty Fish", cat: "fish", zone: "fish", side: "right", img: "images/patty_fish.png" },
+
+    // ── VEGGIE
+    { id: "patty-rebel",          name: "Patty Rebel",    cat: "veggie", zone: "veggie", side: "right", img: "images/patty_rebel.png" },
+    { id: "patty-veggie-chicken", name: "Veggie Chicken", cat: "veggie", zone: "veggie", side: "right", img: "images/patty_veg_chicken.png" },
+
+    // ── FROMAGE
+    { id: "fromage-1", name: "Fromage_x1", cat: "fromage", zone: "fromage", side: "right", img: "images/fromage_x1.png" },
+    { id: "fromage-2", name: "Fromage_x2", cat: "fromage", zone: "fromage", side: "right", img: "images/fromage_x2.png" },
+    { id: "cantal-2",  name: "Cantal",     cat: "fromage", zone: "fromage", side: "right", img: "images/cantal_x2.png" },
+
+    // ── CHARCUTERIE
+    { id: "bacon-2",      name: "Bacon ×2",      cat: "charcuterie", zone: "charcuterie", side: "right", img: "images/bacon_x2.png" },
+    { id: "bacon-3",      name: "Bacon ×3",      cat: "charcuterie", zone: "charcuterie", side: "right", img: "images/bacon_x3.png" },
+    { id: "bacon-vegetal",name: "Bacon Végétal", cat: "charcuterie", zone: "charcuterie", side: "right", img: "images/bacon_veg_x3.png" },
+    { id: "crousty-chevre-charc", name: "crousty chevre", cat: "charcuterie", zone: "charcuterie", side: "right", img: "images/crousty_chevre_x4.png" }
+  ],
+
+  recipes: [
+    { name: "Whopper", gamme: "Whopper", production: 2,
+      heel: ["talon-bun-5","patty-whopper","cornichons-4","ketchup","onion-2"],
+      crown: ["couronne-bun-5","mayo","laitue","tomate-2"] },
+
+    { name: "Double Whopper Cheese", gamme: "Whopper", production: 2,
+      heel: ["talon-bun-5","patty-whopper","patty-whopper","fromage-2"],
+      crown: ["couronne-bun-5","mayo","laitue","tomate-2"] },
+
+    { name: "Whopper Cheese & Bacon", gamme: "Whopper", production: 2,
+      heel: ["talon-bun-5","patty-whopper","fromage-2","bacon-3"],
+      crown: ["couronne-bun-5","mayo","laitue","tomate-2"] },
+
+    { name: "Steakhouse", gamme: "Steakhouse", production: 2,
+      heel: ["talon-bun-45","patty-whopper","fromage-2","bacon-3","sauce-bbq","onion-frits"],
+      crown: ["couronne-bun-45","mayo-14g","onion-frits","laitue","tomate-2"] },
+
+    { name: "Double Steakhouse", gamme: "Steakhouse", production: 2,
+      heel: ["talon-bun-45","patty-whopper","fromage-2","patty-whopper","fromage-2"],
+      crown: ["couronne-bun-45","mayo-14g","onion-frits","laitue","tomate-2"] },
+
+    { name: "Chicken Louisiane Steakhouse", gamme: "Steakhouse", production: 2,
+      heel: ["talon-bun-45","sauce-cajun","patty-chicken-premium","fromage-2","bacon-3"],
+      crown: ["couronne-bun-45","sauce-cajun","onion-frits","laitue","tomate-2"] },
+
+    { name: "Master Cantal Bacon", gamme: "Master", production: 2,
+      heel: ["talon-bun-shiny","sauce-mout-ancienne","patty-burger"],
+      crown: ["couronne-bun-shiny","sauce-mout-ancienne","onion-frits","onion-caramelises","roquette","bacon-3","cantal-2"] },
+
+    { name: "Master Poulet Cantal", gamme: "Master", production: 2,
+      heel: ["talon-bun-shiny","sauce-mout-ancienne","patty-chicken-premium"],
+      crown: ["couronne-bun-shiny","sauce-mout-ancienne","onion-frits","onion-caramelises","roquette","cantal-2"] },
+
+    { name: "Petit Toasté Bacon", gamme: "Petits Toastés", production: 3,
+      heel: ["bun-toast","fromage-1","sauce-cheddar","bacon-3","fromage-1"],
+      crown: ["bun-toast"] },
+
+    { name: "Petit Toasté Veggie", gamme: "Petits Toastés", production: 3,
+      heel: ["pain-toast","fromage-1","sauce-cheddar","bacon-vegetal","fromage-1"],
+      crown: ["pain-toast"] },
+
+    { name: "DCB XXL", gamme: "Boeuf Patty Whopper", production: 2,
+      heel: ["talon-bun-5","patty-whopper","fromage-2","patty-whopper","fromage-2","bacon-3","cornichons-4","ketchup","moutarde"],
+      crown: ["couronne-bun-5"] },
+
+    { name: "Big King XXL", gamme: "Boeuf Patty Whopper", production: 2,
+      heel: ["talon-bun-5","patty-whopper","fromage-2","patty-whopper","fromage-2","cornichons-4"],
+      crown: ["couronne-bun-5","sauce-king","laitue","onion-3"] },
+
+    { name: "Big King", gamme: "Boeuf Patty Whopper", production: 3,
+      heel: ["talon-bun-4","patty-burger","fromage-1","patty-burger","fromage-1","cornichons-2"],
+      crown: ["couronne-bun-4","sauce-king","laitue","onion-2"] },
+
+    { name: "Cheeseburger", gamme: "Boeuf Patty Whopper", production: 3,
+      heel: ["talon-bun-4","patty-burger","fromage-1","cornichons-2","ketchup","moutarde"],
+      crown: ["couronne-bun-4"] },
+
+    { name: "Hamburger", gamme: "Boeuf Patty Hamb", production: 3,
+      heel: ["talon-bun-4","patty-burger","cornichons-2","ketchup","moutarde"],
+      crown: ["couronne-bun-4"] },
+
+    { name: "Cheeseburger Bacon", gamme: "Boeuf Patty Hamb", production: 3,
+      heel: ["talon-bun-4","patty-burger","fromage-1","cornichons-2","bacon-2","ketchup","moutarde"],
+      crown: ["couronne-bun-4"] },
+
+    { name: "Double Cheese Bacon", gamme: "Boeuf Patty Hamb", production: 3,
+      heel: ["talon-bun-4","patty-burger","fromage-1","patty-burger","fromage-1","bacon-2","cornichons-2","ketchup","moutarde"],
+      crown: ["couronne-bun-4"] },
+
+    { name: "Double King", gamme: "Boeuf Patty Hamb", production: 3,
+      heel: ["talon-bun-4","patty-burger","patty-burger","fromage-1"],
+      crown: ["couronne-bun-4","sauce-cajun","laitue"] },
+
+    { name: "Veggie Whopper", gamme: "Veggie", production: 2,
+      heel: ["talon-bun-5","patty-rebel","cornichons-4","ketchup","onion-2"],
+      crown: ["couronne-bun-5","mayo","laitue","tomate-2"] },
+
+    { name: "Veggie Steakhouse", gamme: "Veggie", production: 2,
+      heel: ["talon-bun-45","patty-rebel","fromage-2","bacon-vegetal","sauce-bbq","onion-frits"],
+      crown: ["couronne-bun-45","mayo-14g","onion-frits","laitue","tomate-2"] },
+
+    { name: "Veggie Chkn Louisiane Stkh", gamme: "Veggie", production: 2,
+      heel: ["talon-bun-45","sauce-cajun","patty-veggie-chicken","fromage-2","bacon-vegetal"],
+      crown: ["couronne-bun-45","sauce-cajun","onion-frits","laitue","tomate-2"] },
+
+    { name: "Crispy Chicken Cheese", gamme: "Chicken/Fish", production: 3,
+      heel: ["talon-bun-4","patty-crispy-chicken","fromage-1","sauce-bbq"],
+      crown: ["couronne-bun-4","mayo","laitue","tomate-1"] },
+
+    { name: "King Chicken", gamme: "Chicken/Fish", production: 3,
+      heel: ["talon-bun-4","patty-crispy-chicken"],
+      crown: ["couronne-bun-4","sauce-cajun","laitue"] },
+
+    { name: "Chicken Spicy", gamme: "Chicken/Fish", production: 3,
+      heel: ["talon-bun-45","sauce-spicy-andalouse","patty-chicken-premium","fromage-2"],
+      crown: ["couronne-bun-45","sauce-spicy-andalouse","laitue"] },
+
+    { name: "Big Fish", gamme: "Chicken/Fish", production: 3,
+      heel: ["talon-bun-4","sauce-king","patty-fish","fromage-1"],
+      crown: ["couronne-bun-4","sauce-king","laitue","tomate-1"] },
+
+    { name: "King Fish", gamme: "Chicken/Fish", production: 3,
+      heel: ["talon-bun-4","patty-fish"],
+      crown: ["couronne-bun-4","sauce-cajun","laitue"] },
+
+    { name: "Kid Fishburger", gamme: "Chicken/Fish", production: 3,
+      heel: ["talon-bun-4","patty-fish","ketchup"],
+      crown: ["couronne-bun-4"] },
+
+    { name: "Wrap Chicken Louisiane", gamme: "Wrap", production: 2,
+      heel: [""],
+      crown: ["tortilla","sauce-cajun","onion-frits","patty-crispy-chicken-coupe","fromage-2","laitue","tomate-2"] },
+
+    { name: "Wrap Crousty Chèvre", gamme: "Wrap", production: 2,
+      heel: [""],
+      crown: ["tortilla","sauce-cajun","onion-frits","crousty-chevre","fromage-2","laitue","tomate-2"] },
+
+    { name: "Wrap Cheese & Bacon", gamme: "Wrap", production: 2,
+      heel: [""],
+      crown: ["tortilla","mayo","onion-frits","patty-crispy-chicken-coupe","fromage-2","sauce-bbq","bacon-2","laitue"] }
+  ]
+};
+
+let sessionOrders = [];
+let userHistory = [];
+let currentOrderIdx = 0;
+let score = 0;
+let totalRounds = 5;
+
+const TOP_ZONES = [
+  { key: "bun",       label: "Pains" },
+  { key: "sauce",     label: "Sauces" },
+  { key: "garniture", label: "Garniture Fraîche" }
+];
+
+const RIGHT_ZONES = [
+  { key: "viande",      label: "Viande Bœuf" },
+  { key: "poulet",      label: "Poulet" },
+  { key: "fish",        label: "Poisson" },
+  { key: "veggie",      label: "Veggie" },
+  { key: "fromage",     label: "Fromage" },
+  { key: "charcuterie", label: "Charcuterie" }
+];
+
+function init() {
+    document.getElementById('json-input').value = JSON.stringify(bkData, null, 2);
+    renderIngredients();
+    generateOrderList();
+    updateKDS();
+}
+
+function generateOrderList() {
+    sessionOrders = [];
+    totalRounds = parseInt(document.getElementById('order-count-input').value) || 5;
+    document.getElementById('total-rounds-display').innerText = totalRounds;
+    for (let i = 0; i < totalRounds; i++) {
+        const r = bkData.recipes[Math.floor(Math.random() * bkData.recipes.length)];
+        sessionOrders.push({ ...r, orderNum: i + 1 });
+    }
+}
+
+function renderIngredients() {
+    const topNav = document.getElementById('stations-nav');
+    const rightSide = document.getElementById('right-side-station');
+    topNav.innerHTML = '';
+    rightSide.innerHTML = '';
+
+    TOP_ZONES.forEach(zone => {
+        const items = bkData.ingredients.filter(i => i.zone === zone.key);
+        if (!items.length) return;
+        const group = document.createElement('div');
+        group.className = 'station';
+        group.dataset.zone = zone.key;
+        group.innerHTML = `<div class="station-label">${zone.label}</div><div class="station-items"></div>`;
+        const row = group.querySelector('.station-items');
+        items.forEach(ing => row.appendChild(makeDraggable(ing)));
+        topNav.appendChild(group);
+    });
+
+    RIGHT_ZONES.forEach(zone => {
+        const items = bkData.ingredients.filter(i => i.zone === zone.key);
+        if (!items.length) return;
+        const section = document.createElement('div');
+        section.className = 'right-zone';
+        section.innerHTML = `<div class="right-zone-label ${zone.key}">${zone.label}</div><div class="right-zone-items"></div>`;
+        const row = section.querySelector('.right-zone-items');
+        items.forEach(ing => row.appendChild(makeDraggable(ing)));
+        rightSide.appendChild(section);
+    });
+}
+
+function makeDraggable(ing) {
+    const el = document.createElement('div');
+    el.className = 'ing';
+    el.draggable = true;
+    el.innerHTML = `<img src="${ing.img}"><span>${ing.name}</span>`;
+    el.ondragstart = e => e.dataTransfer.setData("id", ing.id);
+    return el;
+}
+
+function allowDrop(ev) { ev.preventDefault(); }
+
+function drop(ev) {
+    ev.preventDefault();
+    ev.currentTarget.classList.remove('drag-over');
+    const id = ev.dataTransfer.getData("id");
+    const ingData = bkData.ingredients.find(i => i.id === id);
+    if (!ingData) return;
+    const el = document.createElement('div');
+    el.className = 'on-board';
+    el.dataset.id = id;
+    el.innerHTML = `<img src="${ingData.img}"><span>${ingData.name}</span><b class="remove-btn" onclick="this.parentElement.remove()">×</b>`;
+    ev.currentTarget.appendChild(el);
+}
+
+function updateKDS() {
+    const kds = document.getElementById('kds');
+    kds.innerHTML = '<h3>■ KDS</h3>';
+    sessionOrders.forEach((order, idx) => {
+        const div = document.createElement('div');
+        div.className = 'kds-order' + (idx === currentOrderIdx ? ' active' : idx < currentOrderIdx ? ' done' : '');
+        div.innerHTML = `<strong>#${order.orderNum} ${order.name.toUpperCase()}</strong><br><span class="gamme-tag">${order.gamme} · Par ${order.production} MAX</span>`;
+        kds.appendChild(div);
+    });
+    const active = kds.querySelector('.active');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+}
+
+function serveOrder() {
+    const heel = Array.from(document.getElementById('heel-zone').children).map(c => c.dataset.id);
+    const crown = Array.from(document.getElementById('crown-zone').children).map(c => c.dataset.id);
+    const target = sessionOrders[currentOrderIdx];
+
+    const isPerfect = JSON.stringify(heel) === JSON.stringify(target.heel) &&
+                      JSON.stringify(crown) === JSON.stringify(target.crown);
+    if (isPerfect) score++;
+
+    userHistory.push({ name: target.name, gamme: target.gamme,
+        correct: { heel: target.heel, crown: target.crown },
+        user: { heel: heel, crown: crown }, isPerfect });
+
+    currentOrderIdx++;
+    if (currentOrderIdx < totalRounds) {
+        document.getElementById('round-num').innerText = currentOrderIdx + 1;
+        document.getElementById('score-val').innerText = score;
+        updateKDS();
+        clearBoards();
+    } else {
+        showResults();
+    }
+}
+
+function showResults() {
+    document.getElementById('results-screen').style.display = 'block';
+    document.getElementById('final-score-text').innerText =
+        `TOTAL ACCURACY: ${score} / ${totalRounds} (${Math.round(score/totalRounds*100)}%)`;
+    const list = document.getElementById('results-list');
+    list.innerHTML = '';
+
+    userHistory.forEach((h, i) => {
+        const card = document.createElement('div');
+        card.className = `result-card ${h.isPerfect ? 'is-correct' : 'is-wrong'}`;
+
+        card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #eee;padding-bottom:10px;">
+                <div>
+                    <h2 style="margin:0;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;">#${i+1} ${h.name}</h2>
+                    <span style="font-size:13px;color:#888;">${h.gamme}</span>
+                </div>
+                <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:${h.isPerfect ? '#4CAF50' : '#da291c'}">
+                    ${h.isPerfect ? '✓ PERFECT' : '✗ ERREUR'}
+                </span>
+            </div>
+            <div class="result-comparison">
+                <div>
+                    <p style="text-align:center;font-weight:700;color:#777;font-size:13px;margin-bottom:8px;">VOTRE BURGER</p>
+                    <div class="burger-tower">${renderTower(h.user.heel, h.user.crown)}</div>
+                </div>
+                <div>
+                    <p style="text-align:center;font-weight:700;color:#777;font-size:13px;margin-bottom:8px;">RECETTE CORRECTE</p>
+                    <div class="burger-tower">${renderTower(h.correct.heel, h.correct.crown)}</div>
+                </div>
+            </div>`;
+        list.appendChild(card);
+    });
+}
+
+/**
+ * Renders a burger tower with a red demarcation line between heel and crown halves.
+ * The tower is rendered bottom→up: heel items first (bottom), then crown items reversed (top-down → up).
+ * The demarcation line sits between the last heel item and the first crown item.
+ */
+function renderTower(heelIds, crownIds) {
+    // Filter out empty strings
+    const heel = (heelIds || []).filter(id => id && id.trim() !== '');
+    const crown = (crownIds || []).filter(id => id && id.trim() !== '');
+
+    if (!heel.length && !crown.length) {
+        return '<div style="color:#ccc;padding:40px 0;text-align:center;font-size:14px;">AUCUN INGRÉDIENT</div>';
+    }
+
+    // Build the full display stack bottom→up:
+    // heel[0] is the bottom bun → heel[last] is the top of heel stack
+    // crown is stored top→bottom, so reversed = bottom→top of crown section
+    const crownReversed = [...crown].reverse();
+
+    let html = '';
+
+    // Render heel section (bottom of burger)
+    heel.forEach((id, index) => {
+        if (index > 0) html += '<div class="tower-divider"></div>';
+        html += renderTowerItem(id);
+    });
+
+    // ── RED DEMARCATION LINE ──
+    if (heel.length > 0 && crownReversed.length > 0) {
+        html += `
+        <div class="tower-demarcation">
+            <div class="tower-demarcation-line"></div>
+            <div class="tower-demarcation-label">CROWN ↑ HEEL</div>
+            <div class="tower-demarcation-line"></div>
+        </div>`;
+    } else if (heel.length === 0 && crownReversed.length > 0) {
+        // Wrap-only: no heel, label the crown section
+        html += `
+        <div class="tower-demarcation">
+            <div class="tower-demarcation-line"></div>
+            <div class="tower-demarcation-label">CROWN</div>
+            <div class="tower-demarcation-line"></div>
+        </div>`;
+    }
+
+    // Render crown section (top of burger, shown above the line)
+    crownReversed.forEach((id, index) => {
+        if (index > 0) html += '<div class="tower-divider"></div>';
+        html += renderTowerItem(id);
+    });
+
+    return html;
+}
+
+function renderTowerItem(id) {
+    const ing = bkData.ingredients.find(i => i.id === id);
+    if (!ing) {
+        return `<div class="tower-item"><div style="background:#ffeeee;color:#c00;font-size:11px;padding:6px 10px;border-radius:4px;font-weight:700;">${id}</div></div>`;
+    }
+    return `<div class="tower-item">
+        <img src="${ing.img}" alt="${ing.name}">
+        <span class="tower-label">${ing.name}</span>
+    </div>`;
+}
+
+function clearBoards() {
+    document.getElementById('heel-zone').innerHTML = '';
+    document.getElementById('crown-zone').innerHTML = '';
+}
+
+function toggleConfig() {
+    const p = document.getElementById('config-panel');
+    p.style.display = p.style.display === 'block' ? 'none' : 'block';
+}
+
+function saveData() {
+    try {
+        bkData = JSON.parse(document.getElementById('json-input').value);
+        currentOrderIdx = 0; score = 0; userHistory = [];
+        init(); toggleConfig();
+    } catch(e) { alert("JSON invalide !"); }
+}
+
+init();
+</script>
+</body>
+</html>
